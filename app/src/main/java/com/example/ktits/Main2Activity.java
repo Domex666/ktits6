@@ -1,124 +1,138 @@
 package com.example.ktits;
 
-import android.os.AsyncTask;
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.os.Handler;
+import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
-import android.widget.Toast;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class Main2Activity extends AppCompatActivity {
+    Button button1;
+    EditText tv;
+    ListView listView1;
+    private static String TAG_SCHEDULE = "raspisanie";
+    private static String TAG_ID = "id";
+    private static String TAG_PREDM = "urok";
+    private static String TAG_TIME = "id_day";
 
-    private String jsonResult;
-    public String url = "https://domex666.000webhostapp.com/rasp3.php";
-    ListView listView;
-    List<Map<String, String>> hotels = new ArrayList<Map<String, String>>();
 
+
+    ArrayList<HashMap<String, String>> scheduleList;
+
+
+    private Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
-        listView = (ListView) findViewById(R.id.listView);
-        accessWebService();
+        Intent intent = getIntent();
+        tv = (EditText) findViewById(R.id.tv);
+        String grp = intent.getStringExtra("grp");
+        tv.setText(grp);
+        scheduleList = new ArrayList<HashMap<String, String>>();
+
+        handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+
+                ListAdapter adapter = new SimpleAdapter(Main2Activity.this, scheduleList, R.layout.activity_column, new String[]{TAG_TIME, TAG_PREDM}, new int[]{R.id.Coldayid, R.id.ColUrok});
+
+                ListView lv = (ListView) findViewById(R.id.listView1);
+                lv.setAdapter(adapter);
+            }
+        };
+
     }
 
+    public String url1 = "https://domex666.000webhostapp.com/rasp4.php?id_group=";
 
-    private class JsonReadTask extends AsyncTask<String, Void, String> {
 
         @Override
-        protected String doInBackground(String... params) {
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpPost httppost = new HttpPost(params[0]);
-            try {
-                HttpResponse response = httpclient.execute(httppost);
-                jsonResult = inputStreamToString(
-                        response.getEntity().getContent()).toString();
+        protected void onResume(){
+            super.onResume();
 
-            } catch (ClientProtocolException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
+            updateHTTP();
+        }
+    public String getURL() {
+        String uri = "";
+        String id_group = tv.getText().toString();
+        uri = url1 + id_group;
+        Log.d("URL Request >>",uri);
+        return uri;
+
         }
 
-        private StringBuilder inputStreamToString(InputStream is) {
-            String rLine = "";
-            StringBuilder answer = new StringBuilder();
-            BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-            try {
-                while ((rLine = rd.readLine()) != null) {
-                    answer.append(rLine);
+    protected void updateHTTP() {
+        scheduleList.clear();
+        Log.d("Запуск","Zapusk progrm");
+
+        Thread thread = new Thread(new Runnable(){
+
+
+            @Override
+
+            public void run() {
+                try{
+                    String newURL = getURL();
+                    URL url = new URL(newURL);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setReadTimeout(10000);
+                    conn.setConnectTimeout(15000);
+                    conn.setRequestMethod("GET");
+                    conn.setDoInput(true);
+                    conn.connect();
+                    InputStream stream = conn.getInputStream();
+                    String data = convertStreamToString(stream);
+                    Log.d("DATA >> ",data);
+                    JSONObject dataJsonObj = new JSONObject(data);
+                    JSONArray products = dataJsonObj.getJSONArray(TAG_SCHEDULE);
+
+                    for(int i = 0; i < products.length();i++) {
+                        JSONObject schedule = products.getJSONObject(i);
+                        String id_sched = schedule.getString(TAG_ID);
+                        String predm = schedule.getString(TAG_PREDM);
+                        String time = schedule.getString(TAG_TIME);
+                        HashMap<String, String> sched = new HashMap<String, String>();
+                        sched.put(TAG_ID, id_sched);
+                        sched.put(TAG_PREDM, predm);
+                        sched.put(TAG_TIME,time);
+                        scheduleList.add(sched);
+                    }
+
+                    Message msg = new Message();
+                    msg.obj = scheduleList;
+                    handler.sendMessage(msg);
+                    Log.d("Request","Success");
+                } catch (Exception e) {
+                    Log.d("Error thread>",e.getMessage());
                 }
-            } catch (IOException e) {
-                Toast.makeText(getApplicationContext(), "error ..." + e.toString(), Toast.LENGTH_LONG).show();
             }
-            return answer;
-        }
 
-        @Override
-        protected void onPostExecute(String result) {
-            ListDrwaer(); // we will create it later
-        }
+        });
+
+        thread.start();
     }
 
-    public void accessWebService() {
-        JsonReadTask task = new JsonReadTask();
-        task.execute(new String[]{url});
+
+    static String convertStreamToString(InputStream is) {
+        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
 
-    public void ListDrwaer() {
-        try {
-            JSONObject jsonResonse = new JSONObject(jsonResult.substring(jsonResult.indexOf("{"), jsonResult.lastIndexOf("}") + 1));
-            JSONArray jsonMainNode = jsonResonse.optJSONArray("rasp");
-
-            final ArrayList<HashMap<String, String>> MyArrList = new ArrayList<HashMap<String, String>>();
-
-            HashMap<String, String> map;
-
-            for (int i = 0; i < jsonMainNode.length(); i++) {
-                JSONObject c = jsonMainNode.getJSONObject(i);
-
-                map = new HashMap<String, String>();
-
-                map.put("id_group", c.getString("id_group"));
-                map.put("day_name", c.getString("day_name"));
-                map.put("urok", c.getString("urok"));
-
-                MyArrList.add(map);
-
-                SimpleAdapter sAdap;
-                sAdap = new SimpleAdapter(Main2Activity.this, MyArrList, R.layout.activity_column, new String[]{"id_group", "day_name", "urok"}, new int[]{R.id.ColGroupid, R.id.Coldayid, R.id.ColUrok});
-
-                listView.setAdapter(sAdap);
-
-
-            }
-        } catch (JSONException e) {
-            Toast.makeText(getApplicationContext(), "error ..." + e.toString(), Toast.LENGTH_LONG).show();
-        }
-
-
-    }
 }

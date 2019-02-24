@@ -11,7 +11,6 @@ import android.widget.TextView;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
     Button bLogout, rasp;
     EditText eGroups, eFIO, eLogin;
-    TextView ponedel_text;
     UserLocalStore userLocalStore;
 
     @Override
@@ -25,9 +24,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bLogout.setOnClickListener(this);
         rasp = (Button)findViewById(R.id.rasp);
         rasp.setOnClickListener(this);
-        ponedel_text = (TextView)findViewById(R.id.ponedel_text);
         userLocalStore = new UserLocalStore(this);
-        //new DataHelper(this,ponedel_text,105).execute();
+
 
 
     }
@@ -61,14 +59,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.bLogout:
                 userLocalStore.clearUserData();
                 userLocalStore.setUserLoggedIn(false);
-                startActivity(new Intent(this, logpass.class));
-                break;
-            case R.id.rasp:
-                startActivity(new Intent(this, Main2Activity.class));
+               startActivity(new Intent(this, logpass.class));
                 break;
         }
-
-
+            switch (v.getId()) {
+                case R.id.rasp:
+                Intent intent = new Intent(this, Main2Activity.class);
+                intent.putExtra("grp", eGroups.getText().toString());
+                startActivity(intent);
+                break;
+            }
     }
+
 
 }

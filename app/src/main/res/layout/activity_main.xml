@@ -49,11 +49,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
-    <TextView
-        android:id="@+id/ponedel_text"
-        android:layout_width="match_parent"
-        android:layout_height="92dp" />
-
     <Button
         android:id="@+id/rasp"
         android:layout_width="match_parent"

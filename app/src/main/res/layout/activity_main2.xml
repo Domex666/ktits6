@@ -7,10 +7,20 @@
     tools:context=".Main2Activity">
 
     <ListView
+        android:id="@+id/listView1"
         android:layout_width="368dp"
-        android:layout_height="495dp"
-        android:id="@+id/listView"
+        android:layout_height="439dp"
         tools:layout_editor_absoluteX="8dp"
-        tools:layout_editor_absoluteY="8dp" />
+        tools:layout_editor_absoluteY="69dp" />
 
+
+    <EditText
+        android:id="@+id/tv"
+        android:layout_width="74dp"
+        android:layout_height="34dp"
+        android:ems="10"
+        android:visibility="invisible"
+        android:inputType="textPersonName"
+        tools:layout_editor_absoluteX="16dp"
+        tools:layout_editor_absoluteY="19dp" />
 </android.support.constraint.ConstraintLayout>
